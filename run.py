@@ -32,7 +32,6 @@ def main():
     print(f"================================================================")
     print(f"  AUDILECT ACTIVE COGNITIVE COCKPIT")
     print(f"  URL: http://localhost:{args.port}")
-    print(f"  Design Aesthetic: Flat, High-Density, Zero-Gimmick")
     print(f"================================================================")
 
     uvicorn.run("audilect.server.app:app", host=args.host, port=args.port, log_level="info")
