@@ -53,8 +53,8 @@ Traditional lecture summaries often produce passive walls of text that students 
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/audilect.git
-cd audilect
+git clone https://github.com/collo30/AudiLect.git
+cd AudiLect
 
 # 2. Install dependencies
 pip install -r requirements.txt
