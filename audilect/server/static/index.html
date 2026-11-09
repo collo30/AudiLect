@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audilect — Active Cognitive Lecture Cockpit</title>
+  <link rel="stylesheet" href="/static/style.css?v=20261109_v4">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-title">Audilect</span>
+      <span class="brand-sep">/</span>
+      <span id="session-title-display" class="brand-session-name">No lecture loaded</span>
+    </div>
+
+    <div class="top-actions">
+      <!-- Live Recording Status Strip -->
+      <div id="live-rec-top-banner" class="live-rec-banner" style="display: none;">
+        <span class="rec-pulse-dot"></span>
+        <span class="rec-label">Recording Class:</span>
+        <strong id="top-rec-timer" class="rec-timer">00:00:00</strong>
+        <button class="btn-tech btn-record" id="btn-top-stop-record">
+          <svg class="icon-svg" viewBox="0 0 24 24"><rect width="14" height="14" x="5" y="5" rx="2" fill="currentColor"/></svg>
+          Finish & Analyze
+        </button>
+      </div>
+
+      <!-- Grouped Lecture Input Sources -->
+      <div class="sources-group" title="Lecture Input Sources">
+        <span class="sources-label">
+          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></svg>
+          Sources
+        </span>
+        <button class="btn-tech" id="btn-ingest-modal" title="Open and process local lecture video (MP4, MKV, WebM)">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+          Open File
+        </button>
+        <button class="btn-tech" id="btn-open-record" title="Capture live online class (Meet, Zoom, YouTube tab)">
+          <svg class="icon-svg" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+          Capture Class
+        </button>
+      </div>
+
+      <button class="btn-tech" id="btn-open-sessions" title="Past Lecture Sessions">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+        Sessions
+      </button>
+
+      <button class="btn-tech" id="btn-reprocess" title="Reprocess active lecture session">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+        Reprocess
+      </button>
+
+      <button class="btn-tech" id="btn-open-ai-modal" title="Configure Cloud AI (Google Gemini / Groq)">
+        <svg class="icon-svg" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+        AI Engine
+      </button>
+
+      <div class="top-bar-divider"></div>
+
+      <button class="btn-tech" id="btn-toggle-left" title="Toggle Slide Panel">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg>
+        Slides
+      </button>
+
+      <button class="btn-tech" id="btn-toggle-right" title="Toggle Notes Panel">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+        Notes
+      </button>
+
+      <button class="btn-tech" id="btn-toggle-theme" title="Toggle Light / Dark Mode">
+        <!-- Rendered dynamically with Sun / Moon SVG in app.js -->
+        <span id="theme-icon-container"></span>
+        <span id="theme-btn-label">Theme</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- COCKPIT GRID -->
+  <main class="cockpit-grid" id="cockpit-grid">
+    
+    <!-- LEFT PANEL: SLIDES DECK -->
+    <section class="panel" id="left-sidebar">
+      <div class="panel-header">
+        <span>Slide Bookmarks</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="panel-count" id="slide-count-badge">0 Slides</span>
+          <button class="modal-close-btn" id="btn-close-left-panel" title="Close Panel">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="panel-content" id="slides-deck">
+        <div class="empty-panel-state">
+          <svg class="icon-svg" style="width: 24px; height: 24px; color: var(--text-muted);" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          No slides detected yet
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER PANEL: DUAL PLAYER & TRANSCRIPT -->
+    <section class="center-panel">
+      <!-- VIDEO CONTAINER -->
+      <div class="video-container" id="video-stage">
+        <!-- LIVE BROADCAST HUD OVERLAY -->
+        <div id="live-stage-hud" class="live-broadcast-hud" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="rec-pulse-dot"></span>
+            <span style="color: var(--accent-red); font-weight: 600;">Broadcasting from Tab</span>
+            <span style="color: var(--border-subtle);">|</span>
+            <strong id="live-stage-timer" class="rec-timer">00:00:00</strong>
+          </div>
+          <button class="btn-tech btn-record" id="btn-stage-stop-record">
+            <svg class="icon-svg" viewBox="0 0 24 24"><rect width="14" height="14" x="5" y="5" rx="2" fill="currentColor"/></svg>
+            Finish & Process
+          </button>
+        </div>
+
+        <video id="lecture-video" controls playsinline preload="metadata">
+          <source src="" type="video/mp4" id="video-source">
+          Your browser does not support HTML5 video.
+        </video>
+        <div class="playback-bar">
+          <div class="playback-controls">
+            <span>Time: <strong id="time-display" class="time-display-val">00:00 / 00:00</strong></span>
+            <span class="ctrl-sep">|</span>
+            <span>Speed:</span>
+            <button class="playback-rate-btn active" data-rate="1.0">1.0x</button>
+            <button class="playback-rate-btn" data-rate="1.25">1.25x</button>
+            <button class="playback-rate-btn" data-rate="1.5">1.5x</button>
+            <button class="playback-rate-btn" data-rate="2.0">2.0x</button>
+          </div>
+          <div>
+            <span id="current-slide-indicator" class="slide-indicator-tag">Slide #1</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE WORD-LEVEL TRANSCRIPT -->
+      <div class="transcript-header">
+        <div class="elaboration-filter-chips">
+          <button class="filter-chip active" data-filter="all">All</button>
+          <button class="filter-chip" data-filter="intuition">Key Concepts</button>
+          <button class="filter-chip" data-filter="exam_pitfall">Common Misconceptions</button>
+          <button class="filter-chip" data-filter="application">Applications</button>
+        </div>
+
+        <div class="search-input-wrapper">
+          <svg class="icon-svg search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="search-input" id="transcript-search" placeholder="Search transcript...">
+        </div>
+      </div>
+      
+      <div class="transcript-stream" id="transcript-stream">
+        <div class="empty-panel-state">
+          Transcript ready
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: STUDY & RECALL -->
+    <section class="panel" id="right-sidebar">
+      <div class="panel-header">
+        <span>Study & Recall</span>
+        <button class="modal-close-btn" id="btn-close-right-panel" title="Close Panel">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="tab-row">
+        <button class="tab-btn active" data-tab="socratic">
+          <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          Recall
+        </button>
+        <button class="tab-btn" data-tab="primers">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+          Concepts
+        </button>
+        <button class="tab-btn" data-tab="exporters">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Export PDF
+        </button>
+      </div>
+
+      <!-- TAB 1: RECALL CHECKPOINTS -->
+      <div class="tab-content active" id="tab-socratic">
+        <div id="checkpoints-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- TAB 2: DEFINITIONS / CONCEPTS -->
+      <div class="tab-content" id="tab-primers">
+        <div id="primers-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- TAB 3: COMPLETE STUDY PDF EXPORTER -->
+      <div class="tab-content" id="tab-exporters">
+        <div class="export-card hero-export-card">
+          <div class="export-header-row">
+            <span class="export-title">Complete Study Guide</span>
+            <span class="export-badge-pill">PDF</span>
+          </div>
+          <div class="export-desc">
+            Publication-grade PDF containing topic roadmap, all concept definitions, Socratic active recall questions with answer explanations, and the annotated chronological transcript.
+          </div>
+          <div class="export-pdf-stats" id="export-pdf-stats">
+            <div style="font-size: 12px; color: var(--text-muted);">
+              Loading lecture study guide metadata...
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <button class="btn-tech btn-primary" id="btn-download-pdf" style="flex: 1; padding: 9px 12px; font-weight: 600;">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              Download Complete PDF
+            </button>
+            <button class="btn-tech" id="btn-view-pdf" style="padding: 9px 14px;" title="Open and preview in browser tab">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+              Open in Tab
+            </button>
+          </div>
+        </div>
+
+        <div class="export-card secondary-export-card" style="margin-top: 14px;">
+          <div class="secondary-export-heading">Secondary Exports</div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-tech" id="btn-download-anki" style="flex: 1; font-size: 11px;">
+              <svg class="icon-svg" viewBox="0 0 24 24"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="m8 10 4 4 4-4"/></svg>
+              Anki Flashcards (.csv)
+            </button>
+            <button class="btn-tech" id="btn-download-cornell" style="flex: 1; font-size: 11px;">
+              <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/></svg>
+              Cornell Notes (.md)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: PROCESS VIDEO -->
+  <div class="modal-overlay" id="process-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">Open Lecture Video</span>
+        <button class="modal-close-btn" id="btn-x-process" title="Close (Esc)">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label class="modal-label">
+          Local Video File Path (.mp4, .mkv, .mov)
+        </label>
+        <input type="text" id="input-video-path" class="modal-input"
+               value="C:\Users\User\Downloads\Visualization of 2D Data - Recorded Presentation.mp4">
+      </div>
+
+      <div style="margin-bottom: 14px; display: flex; gap: 12px;">
+        <div style="flex: 1;">
+          <label class="modal-label">
+            Duration Limit (Seconds, Optional)
+          </label>
+          <input type="number" id="input-duration-limit" class="modal-input" placeholder="Full lecture">
+        </div>
+        <div style="flex: 1;">
+          <label class="modal-label">
+            Whisper Engine
+          </label>
+          <input type="text" class="modal-input" value="base (INT8 quantized)" disabled>
+        </div>
+      </div>
+
+      <div id="modal-progress-container" style="display: none;">
+        <div class="progress-track">
+          <div class="progress-fill" id="modal-progress-bar"></div>
+        </div>
+        <div class="progress-status" id="modal-status-text">Starting pipeline...</div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
+        <button class="btn-tech" id="btn-cancel-modal">Cancel</button>
+        <button class="btn-tech btn-primary" id="btn-start-process">
+          <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+          Start Processing
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SESSIONS LIST -->
+  <div class="modal-overlay" id="sessions-modal">
+    <div class="modal-box" style="width: 600px;">
+      <div class="modal-header">
+        <span class="modal-title">Select Lecture Session</span>
+        <button class="modal-close-btn" id="btn-x-sessions" title="Close (Esc)">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div id="sessions-list-container" style="max-height: 360px; overflow-y: auto; margin-bottom: 14px;">
+        <!-- Rendered dynamically -->
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn-tech" id="btn-close-sessions">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI ENGINE CONFIG (GEMINI & GROQ) -->
+  <div class="modal-overlay" id="ai-modal">
+    <div class="modal-box" style="width: 540px;">
+      <div class="modal-header">
+        <span class="modal-title">AI Engine & Models</span>
+        <button class="modal-close-btn" id="btn-x-ai" title="Close (Esc)">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Segmented Provider Selector -->
+      <div style="margin-bottom: 14px;">
+        <label class="modal-label">
+          Active AI Provider
+        </label>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-tech ai-provider-toggle active" id="btn-select-gemini" data-provider="gemini" style="flex: 1; padding: 8px; text-align: center;">
+            Google Gemini
+          </button>
+          <button type="button" class="btn-tech ai-provider-toggle" id="btn-select-groq" data-provider="groq" style="flex: 1; padding: 8px; text-align: center;">
+            Groq (Llama 3.3)
+          </button>
+        </div>
+      </div>
+
+      <!-- Provider Context Info -->
+      <div id="ai-provider-info" class="ai-provider-info-box">
+        <!-- Dynamic info -->
+      </div>
+
+      <!-- Model Select -->
+      <div style="margin-bottom: 14px;">
+        <label class="modal-label">
+          Model Selection
+        </label>
+        <select id="ai-model-select" class="modal-input">
+          <!-- Dynamically populated based on active provider -->
+        </select>
+      </div>
+
+      <!-- API Key Input -->
+      <div style="margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label class="modal-label" style="margin-bottom: 0;">
+            API Key (Free Tier)
+          </label>
+          <a id="ai-key-portal-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="link-subtle">
+            Get free key
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+          </a>
+        </div>
+        <div style="position: relative;">
+          <input type="password" id="ai-api-key-input" class="modal-input" style="padding-right: 58px;" placeholder="Paste API key...">
+          <button type="button" id="btn-toggle-key-mask" class="btn-tech" style="position: absolute; right: 4px; top: 4px; padding: 3px 8px; font-size: 11px;">Show</button>
+        </div>
+      </div>
+
+      <!-- Test Status Box -->
+      <div id="ai-status-box" class="ai-status-row">
+        <span id="ai-telemetry-text">Checking connection...</span>
+        <button class="btn-tech" id="btn-test-ai-key" style="padding: 3px 10px; font-size: 11px;">Test Connection</button>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn-tech" id="btn-cancel-ai">Cancel</button>
+        <button class="btn-tech btn-primary" id="btn-save-ai">Save Configuration</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REPROCESS SESSION -->
+  <div class="modal-overlay" id="reprocess-modal">
+    <div class="modal-box" style="width: 520px;">
+      <div class="modal-header">
+        <span class="modal-title">Reprocess Session</span>
+        <button class="modal-close-btn" id="btn-x-reprocess" title="Close (Esc)">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
+        Select reprocessing mode for session: <strong id="reprocess-session-title" style="color: var(--text-primary);">...</strong>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+        <!-- Mode 1: Fast AI Re-synthesis -->
+        <button type="button" class="btn-tech reprocess-card-btn" id="btn-reprocess-ai">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: 600; color: var(--accent-primary); display: flex; align-items: center; gap: 6px;">
+              <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Fast AI Re-synthesis (~3s)
+            </span>
+            <span class="reprocess-tag-recommended">Recommended</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.45;">
+            Re-synthesizes exam-grade Socratic checkpoints, concept anchors, and outside knowledge callouts using your active AI engine directly on the existing transcript.
+          </div>
+        </button>
+
+        <!-- Mode 2: Full Pipeline Reprocess -->
+        <button type="button" class="btn-tech reprocess-card-btn" id="btn-reprocess-full">
+          <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+            Full Pipeline Reprocess
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.45;">
+            Re-extracts audio, re-runs slide transition detection, re-transcribes with Whisper, and regenerates all study artifacts from the original video.
+          </div>
+        </button>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn-tech" id="btn-cancel-reprocess">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GLOBAL PROCESSING TOAST -->
+  <div id="processing-toast" class="processing-toast-box">
+    <div class="toast-title">
+      <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Processing Lecture
+    </div>
+    <div class="progress-track" style="margin: 8px 0 6px 0;">
+      <div class="progress-fill" id="toast-progress-bar"></div>
+    </div>
+    <div class="progress-status" id="toast-status-text">Extracting slides and transcribing...</div>
+  </div>
+
+  <script src="/static/app.js?v=20261109_v4"></script>
+</body>
+</html>

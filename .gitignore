@@ -1,0 +1,42 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# User Data & Private Credentials (CRITICAL: Never commit API keys or private sessions)
+data/config.json
+data/sessions/
+data/recordings/
+*.mp4
+*.mkv
+*.mov
+*.wav
+*.mp3
+
+# Scratch & Temporary Logs
+scratch/
+scratch_*.py
+test_*.py
+check_*.py
+*.log
+tmp/
+temp/
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
