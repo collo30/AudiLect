@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+import sys
 import subprocess
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, File, UploadFile, Form
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, JSONResponse
@@ -27,12 +28,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-SESSIONS_DIR = BASE_DIR / "data" / "sessions"
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).resolve().parent
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass and (Path(meipass) / "audilect" / "server" / "static").exists():
+        STATIC_DIR = Path(meipass) / "audilect" / "server" / "static"
+    elif meipass and (Path(meipass) / "static").exists():
+        STATIC_DIR = Path(meipass) / "static"
+    else:
+        STATIC_DIR = Path(__file__).resolve().parent / "static"
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+SESSIONS_DIR = DATA_DIR / "sessions"
 SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
-RECORDINGS_DIR = BASE_DIR / "data" / "recordings"
+RECORDINGS_DIR = DATA_DIR / "recordings"
 RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
-STATIC_DIR = Path(__file__).resolve().parent / "static"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 pipeline = ProcessingPipeline(sessions_dir=str(SESSIONS_DIR))

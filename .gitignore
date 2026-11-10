@@ -32,6 +32,9 @@ check_*.py
 *.log
 tmp/
 temp/
+build/
+dist/
+*.spec
 
 # IDE & OS files
 .vscode/

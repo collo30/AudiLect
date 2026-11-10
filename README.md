@@ -34,7 +34,8 @@ Traditional lecture summaries often produce passive walls of text that students 
 * Detects visual shifts (slide transitions, board erasures, diagram additions) and bookmarks high-resolution thumbnails mapped to the timeline.
 
 ### 3. High-Accuracy Speech Recognition
-* Powered by `faster-whisper` (CTranslate2 INT8 quantized), providing fast, local speech-to-text with word-level timestamps and Voice Activity Detection (VAD).
+* **Hybrid Cloud & Local Engine**: Ultra-fast Cloud AI transcription via Groq Whisper (`whisper-large-v3-turbo`, ~3 seconds) or Google Gemini Multimodal Audio.
+* **Local Offline Fallback**: Powered by `faster-whisper` (CTranslate2 INT8 quantized) for 100% offline speech-to-text with word-level timestamps and Voice Activity Detection (VAD).
 
 ### 4. Robust AI Intelligence (Gemini & Groq)
 * **Bring Your Own Key**: Free tier Google Gemini (`gemini-3.5-flash-lite`, `gemini-3.5-flash`) or Groq (`llama-3.3-70b-versatile`).
@@ -45,11 +46,19 @@ Traditional lecture summaries often produce passive walls of text that students 
 
 ## Quick Start
 
-### Prerequisites
+### Option A: Standalone Windows Executable (Zero Install)
+No Python, Git, or dependencies required.
+1. Download `AudiLect-Windows-x64.zip` from [Releases](https://github.com/collo30/AudiLect/releases).
+2. Unzip and double-click **`AudiLect.exe`**.
+3. The cockpit opens automatically at `http://localhost:8000`.
+
+### Option B: Run from Source
+
+#### Prerequisites
 * Python 3.9 or higher
 * FFmpeg (automatically handled via `imageio-ffmpeg`)
 
-### Installation
+#### Installation
 
 ```bash
 # 1. Clone the repository
@@ -60,7 +69,7 @@ cd AudiLect
 pip install -r requirements.txt
 ```
 
-### Running the Web Cockpit
+#### Running the Web Cockpit
 
 **Windows**:
 Double-click `start_windows.bat`, or run:
@@ -75,6 +84,14 @@ chmod +x start_linux.sh
 ```
 
 Open **`http://localhost:8000`** in your browser.
+
+#### Building Standalone Windows Executable
+To package your own standalone `.exe`:
+```bash
+pip install pyinstaller
+python build_exe.py
+```
+The compiled executable will be placed in `dist/AudiLect/AudiLect.exe`.
 
 ---
 
