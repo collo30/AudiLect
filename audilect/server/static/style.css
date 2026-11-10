@@ -1365,3 +1365,77 @@ video {
   align-items: center;
   gap: 6px;
 }
+
+/* --------------------------------------------------------------------------
+   13. RESPONSIVE DESIGN (MOBILE & TABLET VIEWPORT)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .top-bar {
+    padding: 0 10px;
+    height: auto;
+    min-height: var(--top-height);
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .brand-session-name {
+    max-width: 140px;
+  }
+
+  .top-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .cockpit-grid {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .panel {
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    max-height: 520px;
+  }
+
+  .center-panel {
+    order: -1; /* Keep video and transcript at the top on mobile */
+  }
+
+  .video-container {
+    max-height: 35vh;
+  }
+
+  video {
+    max-height: 32vh;
+  }
+
+  .transcript-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .search-input-wrapper,
+  .search-input {
+    width: 100%;
+  }
+
+  .modal-box {
+    width: 92vw;
+    max-width: 95vw;
+    padding: 16px;
+  }
+}

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.git/
+.gitignore
+data/config.json
+data/sessions/
+data/recordings/
+*.mp4
+*.mkv
+*.mov
+*.wav
+*.log
+temp/
+tmp/
