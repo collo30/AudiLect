@@ -14,6 +14,12 @@ import imageio_ffmpeg
 def build():
     print("[*] Starting AudiLect Windows Executable Build...")
     
+    # Terminate any running AudiLect instance to release binary file locks
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-Command", "Stop-Process -Name AudiLect -Force -ErrorAction SilentlyContinue"], check=False)
+    except Exception:
+        pass
+
     # Locate ffmpeg binary
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
     print(f"[*] Found bundled ffmpeg: {ffmpeg_exe}")

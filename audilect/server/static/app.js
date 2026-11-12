@@ -1168,10 +1168,29 @@ async function startScreenRecording() {
       audio: true
     });
 
-    screenStream = displayStream;
+    // Check if the user selected 'Share audio' in the browser dialog
+    let streamToRecord = displayStream;
+    let micStream = null;
+    if (displayStream.getAudioTracks().length === 0) {
+      console.warn("No tab/system audio captured in displayStream. Attempting microphone fallback...");
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const micTrack = micStream.getAudioTracks()[0];
+        if (micTrack) {
+          streamToRecord = new MediaStream([
+            ...displayStream.getVideoTracks(),
+            micTrack
+          ]);
+        }
+      } catch (micErr) {
+        console.warn("Microphone fallback unavailable or denied:", micErr);
+      }
+    }
+
+    screenStream = streamToRecord;
 
     // Attach stream directly to center stage video player!
-    video.srcObject = screenStream;
+    video.srcObject = displayStream;
     video.muted = true; // Prevent acoustic feedback while capturing live tab
     video.play().catch(() => {});
 
@@ -1185,7 +1204,7 @@ async function startScreenRecording() {
     const openRecBtn = document.getElementById("btn-open-record");
     if (openRecBtn) openRecBtn.style.display = "none";
 
-    const videoTrack = screenStream.getVideoTracks()[0];
+    const videoTrack = displayStream.getVideoTracks()[0];
     if (videoTrack) {
       videoTrack.onended = () => {
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
@@ -1204,7 +1223,7 @@ async function startScreenRecording() {
       }
     }
 
-    mediaRecorder = new MediaRecorder(screenStream, options);
+    mediaRecorder = new MediaRecorder(streamToRecord, options);
     mediaRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
         recordedBlobs.push(event.data);
