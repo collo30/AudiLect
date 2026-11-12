@@ -3,12 +3,21 @@ import uvicorn
 import os
 import sys
 import time
+import socket
+import urllib.request
 import threading
 import subprocess
 import webbrowser
 import multiprocessing
+import ctypes
 
-# 1. Handle Windows GUI mode (when sys.stdout/sys.stderr are None under --noconsole)
+# 1. Set explicit Windows App User Model ID so taskbar groups & displays icon properly
+try:
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Audilect.Cockpit.ActiveLearning.1.0")
+except Exception:
+    pass
+
+# 2. Handle Windows GUI mode (when sys.stdout/sys.stderr are None under --noconsole)
 if sys.stdout is None:
     try:
         appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
@@ -21,7 +30,7 @@ if sys.stdout is None:
         sys.stdout = open(os.devnull, "w")
         sys.stderr = open(os.devnull, "w")
 
-# 2. Ensure current directory is on PYTHONPATH & working dir is correct
+# 3. Ensure current directory is on PYTHONPATH & working dir is correct
 if getattr(sys, "frozen", False):
     exe_dir = os.path.dirname(os.path.abspath(sys.executable))
     os.chdir(exe_dir)
@@ -30,15 +39,52 @@ else:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def launch_native_window(url: str):
+def is_audilect_running(port: int) -> bool:
+    """Checks if an AudiLect instance is already active and serving on the specified port."""
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/api/sessions", method="GET")
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+def find_available_port(start_port: int = 8000) -> int:
+    """Finds first available TCP port on localhost starting from start_port."""
+    port = start_port
+    while port < start_port + 50:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                return port
+        port += 1
+    return start_port
+
+
+def launch_native_window(url: str, server_ref=None):
     """
-    Launches AudiLect in dedicated native app window mode (borderless, no URL/tab bar)
-    using Microsoft Edge or Chrome, with fallback to standard default browser.
+    Waits for the AudiLect server to be fully ready, then launches AudiLect
+    in dedicated native app window mode using Microsoft Edge or Chrome.
+    Monitors the window process and cleanly stops the server when the user closes the window.
     """
-    time.sleep(1.2)
+    # Wait until the backend server is responding with HTTP 200 (max 25s)
+    start = time.time()
+    while time.time() - start < 25.0:
+        try:
+            req = urllib.request.Request(f"{url}/api/sessions", method="GET")
+            with urllib.request.urlopen(req, timeout=1.0) as resp:
+                if resp.status == 200:
+                    break
+        except Exception:
+            pass
+        time.sleep(0.35)
+
+    appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
+    profile_dir = os.path.join(appdata, "AudiLect", "profile")
+    os.makedirs(profile_dir, exist_ok=True)
 
     candidates = [
-        # Microsoft Edge (present on all modern Windows installations)
+        # Microsoft Edge (standard on modern Windows)
         os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
         os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
         # Google Chrome
@@ -50,12 +96,23 @@ def launch_native_window(url: str):
     for browser_exe in candidates:
         if os.path.isfile(browser_exe):
             try:
-                subprocess.Popen([browser_exe, f"--app={url}"])
+                cmd = [
+                    browser_exe,
+                    f"--app={url}",
+                    f"--user-data-dir={profile_dir}",
+                    "--no-first-run",
+                    "--no-default-browser-check"
+                ]
+                proc = subprocess.Popen(cmd)
+                # Wait for user to close window to trigger clean server shutdown
+                proc.wait()
+                if server_ref is not None:
+                    server_ref.should_exit = True
                 return
             except Exception:
                 pass
 
-    # Fallback to default browser
+    # Fallback to standard default browser
     try:
         webbrowser.open_new_tab(url)
     except Exception:
@@ -121,6 +178,21 @@ def main():
         install_windows_shortcuts()
         return
 
+    # 1. Check if AudiLect is already running on the requested port
+    if is_audilect_running(args.port):
+        print(f"[*] AudiLect is already running on port {args.port}. Bringing up cockpit...")
+        if not args.no_browser:
+            launch_native_window(f"http://127.0.0.1:{args.port}")
+        return
+
+    # 2. If port is occupied by another process, find next available port
+    target_port = args.port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if s.connect_ex(("127.0.0.1", target_port)) == 0:
+            target_port = find_available_port(target_port + 1)
+            print(f"[*] Port {args.port} was busy. Switched to port {target_port}.")
+
     if args.process:
         print(f"[*] Pre-processing lecture video: {args.process}")
         from audilect.pipeline import ProcessingPipeline
@@ -136,15 +208,18 @@ def main():
 
     print("================================================================")
     print("  AUDILECT ACTIVE COGNITIVE COCKPIT")
-    print(f"  URL: http://localhost:{args.port}")
+    print(f"  URL: http://localhost:{target_port}")
     print("================================================================")
 
-    url = f"http://127.0.0.1:{args.port}"
-    if not args.no_browser:
-        threading.Thread(target=launch_native_window, args=(url,), daemon=True).start()
-
     from audilect.server.app import app
-    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    config = uvicorn.Config(app, host=args.host, port=target_port, log_level="info")
+    server = uvicorn.Server(config)
+
+    url = f"http://127.0.0.1:{target_port}"
+    if not args.no_browser:
+        threading.Thread(target=launch_native_window, args=(url, server), daemon=True).start()
+
+    server.run()
 
 
 if __name__ == "__main__":
