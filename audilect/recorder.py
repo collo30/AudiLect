@@ -91,7 +91,8 @@ class ScreenRecorder:
                 "-movflags", "+faststart",
                 output_path
             ]
-            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            flags = 0x08000000 if os.name == "nt" else 0
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
 
             if os.path.exists(temp_raw):
                 try:

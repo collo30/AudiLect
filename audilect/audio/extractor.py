@@ -5,6 +5,9 @@ from typing import Optional, Callable
 import imageio_ffmpeg
 
 
+CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
+
+
 def get_ffmpeg_path() -> str:
     """Return path to ffmpeg executable."""
     return imageio_ffmpeg.get_ffmpeg_exe()
@@ -61,7 +64,7 @@ def extract_audio(
     if progress_callback:
         progress_callback(f"Extracting audio from {os.path.basename(video_path)}...")
 
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=CREATE_NO_WINDOW)
     if result.returncode != 0:
         stderr_text = result.stderr or ""
         # Handle videos/recordings without audio tracks gracefully
@@ -71,7 +74,7 @@ def extract_audio(
             
             # Determine video duration
             dur_cmd = [ffmpeg_bin, "-i", video_path]
-            dur_res = subprocess.run(dur_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            dur_res = subprocess.run(dur_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=CREATE_NO_WINDOW)
             import re
             m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", dur_res.stderr or "")
             vid_dur = 10.0
@@ -92,7 +95,7 @@ def extract_audio(
                 "-ac", str(channels),
                 output_wav_path
             ]
-            gen_res = subprocess.run(gen_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            gen_res = subprocess.run(gen_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=CREATE_NO_WINDOW)
             if gen_res.returncode == 0 and os.path.exists(output_wav_path) and os.path.getsize(output_wav_path) > 0:
                 if progress_callback:
                     progress_callback("Silent audio track created. Proceeding with visual slide extraction.")

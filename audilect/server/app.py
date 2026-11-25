@@ -14,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import imageio_ffmpeg
 
+CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
+
 from audilect.pipeline import ProcessingPipeline
 from audilect.audio.wasapi import list_audio_devices, get_default_wasapi_loopback_device
 
@@ -313,21 +315,17 @@ async def upload_recorded_lecture(
                 break
             f.write(chunk)
 
-    # Remux/transcode to standard seekable MP4
+    # Fast remux to ensure container index is seekable in < 1 second!
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    clean_video = str(RECORDINGS_DIR / f"lecture_rec_{timestamp_str}.webm")
     cmd = [
         ffmpeg, "-y",
         "-i", temp_in,
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", "128k",
-        "-movflags", "+faststart",
-        final_mp4
+        "-c", "copy",
+        clean_video
     ]
-    remux_res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    target_video = final_mp4 if (remux_res.returncode == 0 and os.path.exists(final_mp4) and os.path.getsize(final_mp4) > 0) else temp_in
+    remux_res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=CREATE_NO_WINDOW)
+    target_video = clean_video if (remux_res.returncode == 0 and os.path.exists(clean_video) and os.path.getsize(clean_video) > 0) else temp_in
 
     job_id = f"audilect_rec_{timestamp_str}"
     active_jobs[job_id] = {
@@ -356,10 +354,11 @@ async def stream_video(session_id: str, request: Request):
     if not video_path or not os.path.exists(video_path):
         raise HTTPException(status_code=404, detail="Video source file not found on disk")
 
+    media_type = "video/webm" if str(video_path).lower().endswith(".webm") else "video/mp4"
     range_header = request.headers.get("range")
     if range_header:
         return send_range_video(video_path, range_header)
-    return FileResponse(video_path, media_type="video/mp4")
+    return FileResponse(video_path, media_type=media_type)
 
 
 @app.get("/api/slides/{session_id}/{path:path}")

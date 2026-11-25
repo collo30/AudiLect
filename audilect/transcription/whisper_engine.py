@@ -6,6 +6,8 @@ import subprocess
 from typing import List, Dict, Any, Optional, Callable
 import imageio_ffmpeg
 
+CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
+
 
 class SpeechEngine:
     """
@@ -109,7 +111,8 @@ class SpeechEngine:
             temp_mp3 = audio_path + ".temp.mp3"
             ff_bin = imageio_ffmpeg.get_ffmpeg_exe()
             subprocess.run([ff_bin, "-y", "-i", audio_path, "-b:a", "64k", temp_mp3],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           creationflags=CREATE_NO_WINDOW)
             upload_path = temp_mp3
 
         try:
@@ -183,7 +186,8 @@ class SpeechEngine:
         temp_mp3 = audio_path + ".gemini.mp3"
         ff_bin = imageio_ffmpeg.get_ffmpeg_exe()
         subprocess.run([ff_bin, "-y", "-i", audio_path, "-b:a", "64k", temp_mp3],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       creationflags=CREATE_NO_WINDOW)
 
         try:
             with open(temp_mp3, "rb") as f:

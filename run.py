@@ -156,7 +156,8 @@ def install_windows_shortcuts():
     $s2.Save()
     """
     try:
-        subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], check=True)
+        flags = 0x08000000 if os.name == "nt" else 0
+        subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], check=True, creationflags=flags)
         print("[+] Windows shortcuts installed successfully to Desktop and Start Menu!")
     except Exception as e:
         print(f"[!] Failed to install shortcuts: {e}")
